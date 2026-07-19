@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, MessageCircle } from "lucide-react"
 
 import { BookingProfessionalAssign } from "@/components/dashboard/booking-professional-assign"
 import { BookingStatusSelect } from "@/components/dashboard/booking-status-select"
@@ -8,6 +8,7 @@ import { BOOKING_STATUSES, STATUS_LABELS } from "@/lib/booking-status"
 import { prisma } from "@/lib/prisma"
 import { requireCurrentSpa } from "@/lib/spa"
 import { cn } from "@/lib/utils"
+import { buildWhatsAppLink } from "@/lib/whatsapp"
 
 export default async function TurnosPage({
   searchParams,
@@ -93,17 +94,33 @@ export default async function TurnosPage({
                   .filter((p) => p.services.some((s) => s.id === booking.serviceId))
                   .map((p) => ({ id: p.id, name: p.name }))
 
+                const whatsappLink = buildWhatsAppLink(
+                  booking.clientPhone,
+                  `Hola ${booking.clientName.split(" ")[0]}, te escribimos de ${spa.salonName} por tu turno${booking.service ? ` de ${booking.service.name}` : ""}.`
+                )
+
                 return (
                   <li
                     key={booking.id}
                     className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-foreground">
+                      <p className="flex items-center gap-1.5 font-medium text-foreground">
                         {booking.clientName}{" "}
                         <span className="font-normal text-muted-foreground">
                           · {booking.clientPhone}
                         </span>
+                        {whatsappLink && (
+                          <a
+                            href={whatsappLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Escribir por WhatsApp"
+                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+                          >
+                            <MessageCircle className="h-4 w-4" fill="currentColor" strokeWidth={0} />
+                          </a>
+                        )}
                       </p>
                       {booking.service && (
                         <p className="text-sm font-medium text-secondary">

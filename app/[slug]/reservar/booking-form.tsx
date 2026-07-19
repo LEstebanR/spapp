@@ -33,6 +33,7 @@ export function BookingForm({
   initialServiceId?: string
 }) {
   const dateRef = useRef<HTMLInputElement>(null)
+  const serviceRef = useRef<HTMLSelectElement>(null)
   const [clientName, setClientName] = useState("")
   const [clientPhone, setClientPhone] = useState("")
   const [serviceId, setServiceId] = useState(initialServiceId ?? "")
@@ -127,8 +128,12 @@ export function BookingForm({
   }
 
   function handleLockedFieldClick() {
-    if (date) return
+    if (serviceId && date) return
     setNeedsDateHint(true)
+    if (!serviceId) {
+      serviceRef.current?.focus()
+      return
+    }
     dateRef.current?.focus()
   }
 
@@ -190,9 +195,13 @@ export function BookingForm({
           <div className="space-y-1.5">
             <Label htmlFor="service">Servicio</Label>
             <select
+              ref={serviceRef}
               id="service"
               value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
+              onChange={(e) => {
+                setServiceId(e.target.value)
+                if (e.target.value) setNeedsDateHint(false)
+              }}
               required
               className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
             >
@@ -242,7 +251,7 @@ export function BookingForm({
                   id="professional"
                   value={professionalId}
                   onChange={(e) => setProfessionalId(e.target.value)}
-                  disabled={!date || isCheckingAvailability}
+                  disabled={!serviceId || !date || isCheckingAvailability}
                   className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">Cualquiera disponible</option>
@@ -264,18 +273,22 @@ export function BookingForm({
                   id="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  disabled={!date || isLoadingSlots || availableSlots.length === 0}
+                  disabled={
+                    !serviceId || !date || isLoadingSlots || availableSlots.length === 0
+                  }
                   required
                   className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="" disabled>
-                    {!date
-                      ? "Elige primero una fecha"
-                      : isLoadingSlots
-                        ? "Buscando horas…"
-                        : availableSlots.length === 0
-                          ? "Sin horas disponibles ese día"
-                          : "Elige una hora…"}
+                    {!serviceId
+                      ? "Elige primero un servicio"
+                      : !date
+                        ? "Elige primero una fecha"
+                        : isLoadingSlots
+                          ? "Buscando horas…"
+                          : availableSlots.length === 0
+                            ? "Sin horas disponibles ese día"
+                            : "Elige una hora…"}
                   </option>
                   {availableSlots.map((slot) => (
                     <option key={slot} value={slot}>
@@ -287,9 +300,11 @@ export function BookingForm({
             </div>
           )}
 
-          {needsDateHint && !date && (
+          {needsDateHint && (!serviceId || !date) && (
             <p className="text-sm text-primary">
-              Selecciona primero una fecha para elegir profesional y hora.
+              {!serviceId
+                ? "Selecciona primero un servicio para elegir profesional y hora."
+                : "Selecciona primero una fecha para elegir profesional y hora."}
             </p>
           )}
 

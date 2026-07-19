@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 
-import { generateSlots, isDayOpen, isWithinOpenHours, parseHours } from "@/lib/hours"
+import { generateSlots, isWithinOpenHours, parseHours } from "@/lib/hours"
 import { createNotification } from "@/lib/notifications"
 import { prisma } from "@/lib/prisma"
 import { sendPushToUser } from "@/lib/push"
@@ -18,6 +18,16 @@ export type BookingInput = {
   notes: string
 }
 
+// A slot only counts if it hasn't already passed today — keeps this in sync
+// with getAvailableSlots below, so a professional is never listed as
+// available when they actually have zero bookable times left that day.
+function dropPastSlots(slots: string[], date: Date): string[] {
+  const now = new Date()
+  if (date.toDateString() !== now.toDateString()) return slots
+  const nowStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+  return slots.filter((s) => s > nowStr)
+}
+
 export async function getAvailableProfessionals(input: {
   slug: string
   serviceId: string
@@ -25,6 +35,9 @@ export async function getAvailableProfessionals(input: {
 }) {
   const spa = await prisma.spa.findUnique({ where: { slug: input.slug } })
   if (!spa) return []
+
+  const service = await prisma.service.findUnique({ where: { id: input.serviceId } })
+  if (!service || service.spaId !== spa.id) return []
 
   const date = new Date(`${input.date}T00:00:00`)
   if (Number.isNaN(date.getTime())) return []
@@ -39,7 +52,10 @@ export async function getAvailableProfessionals(input: {
   })
 
   return professionals
-    .filter((p) => isDayOpen(parseHours(p.hours ?? spa.hours), date))
+    .filter((p) => {
+      const slots = generateSlots(parseHours(p.hours ?? spa.hours), date, service.durationMinutes)
+      return dropPastSlots(slots, date).length > 0
+    })
     .map((p) => ({ id: p.id, name: p.name }))
 }
 
@@ -84,11 +100,7 @@ export async function getAvailableSlots(input: {
     slots = Array.from(union).sort()
   }
 
-  const now = new Date()
-  const isToday = date.toDateString() === now.toDateString()
-  const nowStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
-
-  return isToday ? slots.filter((s) => s > nowStr) : slots
+  return dropPastSlots(slots, date)
 }
 
 export async function createBooking(input: BookingInput) {

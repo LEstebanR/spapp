@@ -33,6 +33,9 @@ export async function updateBookingStatus(id: string, status: string) {
 export async function assignBookingProfessional(id: string, professionalId: string) {
   const spa = await requireCurrentSpa()
 
+  const booking = await prisma.booking.findUnique({ where: { id, spaId: spa.id } })
+  if (!booking) throw new Error("Turno no encontrado")
+
   const professional = await prisma.professional.findUnique({
     where: { id: professionalId, spaId: spa.id },
   })
@@ -40,7 +43,10 @@ export async function assignBookingProfessional(id: string, professionalId: stri
 
   await prisma.booking.update({
     where: { id, spaId: spa.id },
-    data: { professionalId },
+    data: {
+      professionalId,
+      status: booking.status === "pendiente" ? "confirmado" : booking.status,
+    },
   })
 
   revalidateTurnos()

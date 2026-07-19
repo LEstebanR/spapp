@@ -1,4 +1,5 @@
-import { Users2 } from "lucide-react"
+import Link from "next/link"
+import { ChevronLeft, ChevronRight, Users2 } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,11 +16,27 @@ import { prisma } from "@/lib/prisma"
 import { requireCurrentSpa } from "@/lib/spa"
 import { cn } from "@/lib/utils"
 
-export default async function ClientsPage() {
+// Rows per page tuned so a full page fits one desktop viewport with no
+// vertical scroll (header + this many rows + pagination bar).
+const PAGE_SIZE = 8
+
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const spa = await requireCurrentSpa()
+  const { page: pageParam } = await searchParams
+
+  const totalCount = await prisma.booking.count({ where: { spaId: spa.id } })
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+  const page = Math.min(Math.max(1, Number(pageParam) || 1), totalPages)
+
   const bookings = await prisma.booking.findMany({
     where: { spaId: spa.id },
     orderBy: { date: "desc" },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
     include: {
       service: { select: { name: true } },
       professional: { select: { name: true } },
@@ -127,8 +144,64 @@ export default async function ClientsPage() {
               </TableBody>
             </Table>
           </div>
+
+          <div className="flex items-center justify-between gap-4 border-t border-border px-5 py-3">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalCount)} de{" "}
+              {totalCount} clientes
+            </p>
+            <div className="flex items-center gap-1">
+              <PageLink
+                page={page - 1}
+                disabled={page <= 1}
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </PageLink>
+              <span className="px-2 text-sm text-muted-foreground">
+                {page} / {totalPages}
+              </span>
+              <PageLink
+                page={page + 1}
+                disabled={page >= totalPages}
+                aria-label="Página siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </PageLink>
+            </div>
+          </div>
         </div>
       )}
     </div>
+  )
+}
+
+function PageLink({
+  page,
+  disabled,
+  "aria-label": ariaLabel,
+  children,
+}: {
+  page: number
+  disabled: boolean
+  "aria-label": string
+  children: React.ReactNode
+}) {
+  if (disabled) {
+    return (
+      <span className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground/40">
+        {children}
+      </span>
+    )
+  }
+
+  return (
+    <Link
+      href={`/dashboard/clients?page=${page}`}
+      aria-label={ariaLabel}
+      className="flex h-8 w-8 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
+    >
+      {children}
+    </Link>
   )
 }
