@@ -1,0 +1,128 @@
+import Link from "next/link"
+import { ExternalLink } from "lucide-react"
+
+import { BookingStatusSelect } from "@/components/dashboard/booking-status-select"
+import { Card, CardContent } from "@/components/ui/card"
+import { BOOKING_STATUSES, STATUS_LABELS } from "@/lib/booking-status"
+import { prisma } from "@/lib/prisma"
+import { requireCurrentSpa } from "@/lib/spa"
+import { cn } from "@/lib/utils"
+
+export default async function TurnosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>
+}) {
+  const spa = await requireCurrentSpa()
+  const { status } = await searchParams
+  const activeStatus = BOOKING_STATUSES.includes(status as (typeof BOOKING_STATUSES)[number])
+    ? status
+    : undefined
+
+  const bookings = await prisma.booking.findMany({
+    where: { spaId: spa.id, ...(activeStatus ? { status: activeStatus } : {}) },
+    orderBy: { date: "asc" },
+    include: {
+      professional: { select: { name: true } },
+      service: { select: { name: true } },
+    },
+  })
+
+  const filters = [{ value: undefined, label: "Todos" }, ...BOOKING_STATUSES.map((s) => ({
+    value: s,
+    label: STATUS_LABELS[s],
+  }))]
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-foreground">
+            Turnos
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            Solicitudes de turno hechas desde tu página pública.
+          </p>
+        </div>
+        <Link
+          href={`/${spa.slug}/reservar`}
+          target="_blank"
+          className="flex items-center gap-1.5 text-sm font-medium text-secondary hover:underline"
+        >
+          Ver página pública <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-1 rounded-full bg-muted p-1 sm:inline-flex">
+        {filters.map((f) => (
+          <Link
+            key={f.label}
+            href={f.value ? `/dashboard/turnos?status=${f.value}` : "/dashboard/turnos"}
+            className={cn(
+              "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+              activeStatus === f.value
+                ? "bg-white text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {f.label}
+          </Link>
+        ))}
+      </div>
+
+      <Card className="mt-6">
+        <CardContent>
+          {bookings.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {activeStatus
+                ? `No hay turnos con estado "${STATUS_LABELS[activeStatus]}".`
+                : "Todavía no hay solicitudes de turno."}
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {bookings.map((booking) => (
+                <li
+                  key={booking.id}
+                  className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">
+                      {booking.clientName}{" "}
+                      <span className="font-normal text-muted-foreground">
+                        · {booking.clientPhone}
+                      </span>
+                    </p>
+                    {booking.service && (
+                      <p className="text-sm font-medium text-secondary">
+                        {booking.service.name}
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {booking.date.toLocaleDateString("es-CO", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                      })}{" "}
+                      ·{" "}
+                      {booking.date.toLocaleTimeString("es-CO", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {booking.professional && ` · ${booking.professional.name}`}
+                    </p>
+                    {booking.notes && (
+                      <p className="mt-0.5 text-sm text-muted-foreground italic">
+                        “{booking.notes}”
+                      </p>
+                    )}
+                  </div>
+                  <BookingStatusSelect id={booking.id} status={booking.status} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

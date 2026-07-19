@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String        @id
+  name          String
+  email         String
+  emailVerified Boolean       @default(false)
+  image         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sessions          Session[]
+  authaccounts      AuthAccount[]
+  spa               Spa?
+  pushSubscriptions PushSubscription[]
+  notifications     Notification[]
+
+  @@unique([email])
+}
+
+// In-app notification — always created regardless of whether the user has
+// enabled browser push, so there's a way to see it without any setup.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  url       String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// A browser's Web Push subscription — lets us notify the spa owner when a
+// new booking request comes in, without any third-party push service.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model AuthAccount {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("authAccount")
+}
+
+// One spa per owner account. The slug identifies its public page
+// (/[slug], with booking at /[slug]/reservar) — this is what lets many
+// spas coexist.
+model Spa {
+  id          String   @id @default(cuid())
+  ownerId     String   @unique
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  slug        String   @unique
+  salonName   String
+  description String?
+  logoUrl     String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  // Array of 7 { day: 0-6, open: boolean, from: "HH:mm", to: "HH:mm" }, Sunday = 0.
+  hours     Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  professionalTypes ProfessionalType[]
+  professionals     Professional[]
+  services          Service[]
+  bookings          Booking[]
+}
+
+// A role a professional can have at a spa (e.g. "Masajista", "Esteticista").
+model ProfessionalType {
+  id            String         @id @default(cuid())
+  spaId         String
+  spa           Spa            @relation(fields: [spaId], references: [id], onDelete: Cascade)
+  name          String
+  createdAt     DateTime       @default(now())
+  professionals Professional[]
+  services      Service[]
+
+  @@unique([spaId, name])
+}
+
+model Professional {
+  id                 String            @id @default(cuid())
+  spaId              String
+  spa                Spa               @relation(fields: [spaId], references: [id], onDelete: Cascade)
+  name               String
+  avatarUrl          String?
+  professionalTypeId String?
+  professionalType   ProfessionalType? @relation(fields: [professionalTypeId], references: [id], onDelete: SetNull)
+  active             Boolean           @default(true)
+  // Array of 7 { day: 0-6, open: boolean, from: "HH:mm", to: "HH:mm" }, Sunday = 0.
+  hours              Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  bookings           Booking[]
+  services           Service[]
+
+  @@index([spaId])
+}
+
+// A service the spa offers (e.g. "Masaje relajante", 60 min, done by a "Masajista").
+model Service {
+  id                 String            @id @default(cuid())
+  spaId              String
+  spa                Spa               @relation(fields: [spaId], references: [id], onDelete: Cascade)
+  name               String
+  durationMinutes    Int
+  professionalTypeId String?
+  professionalType   ProfessionalType? @relation(fields: [professionalTypeId], references: [id], onDelete: SetNull)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  professionals      Professional[]
+  bookings           Booking[]
+
+  @@index([spaId])
+}
+
+// A public visitor's request to book a turno — no account required.
+// Staff reviews and confirms/cancels it from the dashboard.
+model Booking {
+  id             String        @id @default(cuid())
+  spaId          String
+  spa            Spa           @relation(fields: [spaId], references: [id], onDelete: Cascade)
+  clientName     String
+  clientPhone    String
+  notes          String?
+  serviceId      String?
+  service        Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  date           DateTime
+  status         String        @default("pendiente")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([spaId])
+  @@index([serviceId])
+  @@index([professionalId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
