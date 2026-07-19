@@ -16,8 +16,8 @@ export function SpaNav({
   logoUrl: string | null
 }) {
   return (
-    <nav className="fixed top-0 right-0 left-0 z-50 h-16 bg-dark/90 backdrop-blur-md">
-      <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-5 sm:px-6">
+    <nav className="fixed top-0 right-0 left-0 z-50 h-[calc(4rem+env(safe-area-inset-top))] bg-dark/90 pt-safe backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5 sm:px-6">
         <Link href={`/${slug}`} className="flex min-w-0 items-center gap-2.5">
           {logoUrl ? (
             <Image

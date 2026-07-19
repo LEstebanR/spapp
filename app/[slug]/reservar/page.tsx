@@ -34,7 +34,7 @@ export default async function ReservarPage({
   return (
     <main className="min-h-screen bg-muted/40">
       <SpaNav slug={spa.slug} salonName={spa.salonName} logoUrl={spa.logoUrl} />
-      <div className="px-5 pt-24 pb-12 sm:px-6">
+      <div className="px-5 pt-[calc(6rem+env(safe-area-inset-top))] pb-12 sm:px-6">
         <div className="mx-auto max-w-lg">
           <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
             Reserva en {spa.salonName}

@@ -35,7 +35,7 @@ export default async function SpaPublicPage({
       <SpaNav slug={spa.slug} salonName={spa.salonName} logoUrl={spa.logoUrl} />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-dark pt-16">
+      <section className="relative overflow-hidden bg-dark pt-[calc(4rem+env(safe-area-inset-top))]">
         <div
           className="absolute inset-0"
           style={{

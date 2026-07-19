@@ -69,7 +69,7 @@ function TurnosMockup() {
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-dark pt-[76px]">
+    <section className="relative overflow-hidden bg-dark pt-[calc(76px+env(safe-area-inset-top))]">
       <div
         className="absolute inset-0"
         style={{

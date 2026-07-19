@@ -17,8 +17,8 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 right-0 left-0 z-50 h-[76px] bg-dark/95 backdrop-blur-md">
-      <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <nav className="pt-safe fixed top-0 right-0 left-0 z-50 h-[calc(76px+env(safe-area-inset-top))] bg-dark/95 backdrop-blur-md">
+      <div className="mx-auto flex h-[76px] max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/">
           <Logo variant="light" />
         </Link>

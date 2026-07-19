@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { AlertCircle, Check } from "lucide-react"
 
 import {
@@ -32,6 +32,7 @@ export function BookingForm({
   professionals: Professional[]
   initialServiceId?: string
 }) {
+  const dateRef = useRef<HTMLInputElement>(null)
   const [clientName, setClientName] = useState("")
   const [clientPhone, setClientPhone] = useState("")
   const [serviceId, setServiceId] = useState(initialServiceId ?? "")
@@ -42,6 +43,7 @@ export function BookingForm({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [needsDateHint, setNeedsDateHint] = useState(false)
 
   const [availableProfessionals, setAvailableProfessionals] =
     useState<{ id: string; name: string }[]>(professionals)
@@ -124,6 +126,12 @@ export function BookingForm({
     })
   }
 
+  function handleLockedFieldClick() {
+    if (date) return
+    setNeedsDateHint(true)
+    dateRef.current?.focus()
+  }
+
   if (success) {
     return (
       <Card>
@@ -202,10 +210,14 @@ export function BookingForm({
           <div className="space-y-1.5">
             <Label htmlFor="date">Fecha</Label>
             <Input
+              ref={dateRef}
               id="date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                setDate(e.target.value)
+                if (e.target.value) setNeedsDateHint(false)
+              }}
               min={new Date().toISOString().slice(0, 10)}
               required
             />
@@ -221,51 +233,64 @@ export function BookingForm({
             </div>
           )}
 
-          {!noAvailability && availableProfessionals.length > 0 && (
+          {!noAvailability && (
             <div className="space-y-1.5">
               <Label htmlFor="professional">Profesional (opcional)</Label>
-              <select
-                id="professional"
-                value={professionalId}
-                onChange={(e) => setProfessionalId(e.target.value)}
-                disabled={isCheckingAvailability}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-              >
-                <option value="">Cualquiera disponible</option>
-                {availableProfessionals.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              {/* Wrapper captures clicks even while the select is disabled. */}
+              <div onClickCapture={handleLockedFieldClick}>
+                <select
+                  id="professional"
+                  value={professionalId}
+                  onChange={(e) => setProfessionalId(e.target.value)}
+                  disabled={!date || isCheckingAvailability}
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Cualquiera disponible</option>
+                  {availableProfessionals.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
-          {date && !noAvailability && (
+          {!noAvailability && (
             <div className="space-y-1.5">
               <Label htmlFor="time">Hora</Label>
-              <select
-                id="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                disabled={isLoadingSlots || availableSlots.length === 0}
-                required
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm disabled:opacity-50"
-              >
-                <option value="" disabled>
-                  {isLoadingSlots
-                    ? "Buscando horas…"
-                    : availableSlots.length === 0
-                      ? "Sin horas disponibles ese día"
-                      : "Elige una hora…"}
-                </option>
-                {availableSlots.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
+              <div onClickCapture={handleLockedFieldClick}>
+                <select
+                  id="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  disabled={!date || isLoadingSlots || availableSlots.length === 0}
+                  required
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    {!date
+                      ? "Elige primero una fecha"
+                      : isLoadingSlots
+                        ? "Buscando horas…"
+                        : availableSlots.length === 0
+                          ? "Sin horas disponibles ese día"
+                          : "Elige una hora…"}
                   </option>
-                ))}
-              </select>
+                  {availableSlots.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+          )}
+
+          {needsDateHint && !date && (
+            <p className="text-sm text-primary">
+              Selecciona primero una fecha para elegir profesional y hora.
+            </p>
           )}
 
           <div className="space-y-1.5">

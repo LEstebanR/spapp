@@ -35,7 +35,7 @@ export function Header({ user }: { user?: HeaderUser | null }) {
   }
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between border-b bg-background px-4">
+    <header className="pt-safe sticky top-0 z-50 flex min-h-14 w-full items-center justify-between border-b bg-background px-4">
       <SidebarTrigger />
 
       <div className="flex items-center gap-1">
