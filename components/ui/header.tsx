@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { NotificationBell } from "@/components/dashboard/notification-bell"
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { authClient } from "@/lib/auth-client"
-import { LogOut } from "lucide-react"
+import { Loader2, LogOut } from "lucide-react"
 
 type HeaderUser = {
   name: string
@@ -24,8 +25,10 @@ type HeaderUser = {
 
 export function Header({ user }: { user?: HeaderUser | null }) {
   const router = useRouter()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
+    setIsLoggingOut(true)
     await authClient.signOut()
     router.push("/login")
     router.refresh()
@@ -38,7 +41,7 @@ export function Header({ user }: { user?: HeaderUser | null }) {
       <div className="flex items-center gap-1">
         <NotificationBell />
 
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Avatar className="cursor-pointer">
               <AvatarImage src={user?.image ?? ""} alt={user?.name} />
@@ -55,9 +58,24 @@ export function Header({ user }: { user?: HeaderUser | null }) {
               {user?.email}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              Cerrar sesión
+            <DropdownMenuItem
+              onSelect={(e) => {
+                if (isLoggingOut) {
+                  e.preventDefault()
+                  return
+                }
+                e.preventDefault()
+                handleLogout()
+              }}
+              disabled={isLoggingOut}
+              className="gap-2"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+              {isLoggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

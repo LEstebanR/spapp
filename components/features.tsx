@@ -1,35 +1,31 @@
-import { CalendarClock, Users, BarChart3, Bell } from "lucide-react"
+import { CalendarDays, Globe, Users, Bell } from "lucide-react"
 
 import { Reveal } from "@/components/reveal"
 
 const features = [
   {
-    icon: CalendarClock,
-    title: "Turnos en un solo calendario",
+    icon: CalendarDays,
+    title: "Agenda y turnos en un solo lugar",
     description:
-      "Agenda cada cita con su terapeuta, servicio y duración. Se acabaron las planillas y los cruces de horario.",
-    available: true,
+      "Vista de mes, semana o día con todos los turnos confirmados y por confirmar. Agenda tú mismo o deja que lleguen desde tu página pública.",
   },
   {
     icon: Users,
-    title: "Tu equipo, organizado",
+    title: "Tu equipo, con su propio horario",
     description:
-      "Asigna terapeutas a cada turno y ve la carga de trabajo de todo el equipo de un vistazo.",
-    available: false,
+      "Cada profesional tiene su foto, sus servicios y su disponibilidad. Al reservar, solo aparece quien realmente puede atender ese servicio ese día.",
+  },
+  {
+    icon: Globe,
+    title: "Tu spa, con página propia",
+    description:
+      "Spapp genera una página pública con tu logo, servicios, horario y ubicación — lista para compartir en Instagram o Google, sin que sepas de tecnología.",
   },
   {
     icon: Bell,
-    title: "Recordatorios automáticos",
+    title: "Te enteras al instante",
     description:
-      "Reduce las ausencias con recordatorios antes de cada cita, sin tener que escribir a cada cliente.",
-    available: false,
-  },
-  {
-    icon: BarChart3,
-    title: "Reportes del negocio",
-    description:
-      "Entiende qué servicios y qué horarios se llenan más para tomar mejores decisiones.",
-    available: false,
+      "Cada solicitud de turno llega a tu panel y, si quieres, como notificación push en tu navegador — sin refrescar la página para ver si hay algo nuevo.",
   },
 ]
 
@@ -62,11 +58,6 @@ export function Features() {
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {feature.description}
                 </p>
-                {!feature.available && (
-                  <span className="mt-4 inline-block rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-                    Próximamente
-                  </span>
-                )}
               </div>
             </Reveal>
           ))}

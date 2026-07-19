@@ -8,6 +8,7 @@ import { Hero } from "@/components/hero"
 import { HowItWorks } from "@/components/how-it-works"
 import { Navbar } from "@/components/navbar"
 import { Stats } from "@/components/stats"
+import { WebsiteShowcase } from "@/components/website-showcase"
 import { getServerSession } from "@/lib/session"
 
 export default async function Home() {
@@ -19,6 +20,7 @@ export default async function Home() {
       <Navbar />
       <Hero />
       <Features />
+      <WebsiteShowcase />
       <HowItWorks />
       <Stats />
       <FAQ />

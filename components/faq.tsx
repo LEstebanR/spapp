@@ -12,12 +12,16 @@ const faqs = [
     a: "Con tu cuenta de Google — no hay contraseñas nuevas que crear ni recordar.",
   },
   {
-    q: "¿Varias personas del equipo pueden ver la agenda?",
-    a: "Esa es justamente la idea: todo el equipo ve los mismos turnos, actualizados en tiempo real.",
+    q: "¿Mis clientes necesitan crear una cuenta para reservar?",
+    a: "No. Reservan desde tu página pública con solo su nombre y teléfono — sin contraseñas ni registros.",
   },
   {
-    q: "¿Qué sigue después de los turnos?",
-    a: "Estamos construyendo Spapp junto con quienes lo usan. Gestión de equipo, clientes y reportes son los siguientes pasos.",
+    q: "¿La página pública de mi spa se crea sola?",
+    a: "Sí. En cuanto creas tu cuenta tienes una página propia con tu logo, servicios, horario y ubicación, lista para compartir.",
+  },
+  {
+    q: "¿Qué sigue después de esto?",
+    a: "Estamos construyendo Spapp junto con quienes lo usan. Notificaciones por WhatsApp y un acceso propio para cada profesional son los siguientes pasos.",
   },
 ]
 
