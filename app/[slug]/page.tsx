@@ -89,9 +89,10 @@ export default async function SpaPublicPage({
             </p>
           )}
 
-          {spa.address && (
+          {(spa.address || spa.city) && (
             <p className="mt-5 flex items-center justify-center gap-1.5 text-sm text-white/55">
-              <MapPin className="h-4 w-4" /> {spa.address}
+              <MapPin className="h-4 w-4" />
+              {[spa.address, spa.city, spa.department].filter(Boolean).join(", ")}
             </p>
           )}
 

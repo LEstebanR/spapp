@@ -60,15 +60,23 @@ export async function updateLogo(logoUrl: string) {
   revalidateSettings(spa.slug)
 }
 
-export async function updateLocation(
-  address: string,
-  latitude: number | null,
+export async function updateLocation(data: {
+  address: string
+  city: string
+  department: string
+  latitude: number | null
   longitude: number | null
-) {
+}) {
   const spa = await requireCurrentSpa()
   await prisma.spa.update({
     where: { id: spa.id },
-    data: { address, latitude, longitude },
+    data: {
+      address: data.address.trim() || null,
+      city: data.city.trim() || null,
+      department: data.department.trim() || null,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    },
   })
   revalidateSettings(spa.slug)
 }

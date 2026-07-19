@@ -84,6 +84,8 @@ export default async function SettingsPage() {
         <CardContent>
           <SpaLocationForm
             initialAddress={spa.address ?? ""}
+            initialCity={spa.city ?? ""}
+            initialDepartment={spa.department ?? ""}
             initialLatitude={spa.latitude}
             initialLongitude={spa.longitude}
           />

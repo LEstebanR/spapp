@@ -26,11 +26,30 @@ function createPinIcon() {
   })
 }
 
+type NominatimAddress = {
+  city?: string
+  town?: string
+  village?: string
+  municipality?: string
+  county?: string
+  state?: string
+}
+
 type NominatimResult = {
   place_id: number
   display_name: string
   lat: string
   lon: string
+  address?: NominatimAddress
+}
+
+export type Place = { city?: string; department?: string }
+
+function toPlace(address?: NominatimAddress): Place {
+  return {
+    city: address?.city || address?.town || address?.village || address?.municipality || address?.county,
+    department: address?.state,
+  }
 }
 
 function parseDisplayName(raw: string): { main: string; context: string } {
@@ -56,14 +75,14 @@ function FlyTo({ coords, zoom }: { coords: [number, number] | null; zoom: number
   return null
 }
 
-async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+async function reverseGeocode(lat: number, lng: number): Promise<Place | null> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
       { headers: { "Accept-Language": "es" } }
     )
-    const data: { display_name?: string } = await res.json()
-    return data.display_name ?? null
+    const data: { address?: NominatimAddress } = await res.json()
+    return toPlace(data.address)
   } catch {
     return null
   }
@@ -72,7 +91,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
 type Props = {
   latitude?: number | null
   longitude?: number | null
-  onChange: (lat: number, lng: number, address?: string) => void
+  onChange: (lat: number, lng: number, place?: Place) => void
 }
 
 export default function MapPicker({ latitude, longitude, onChange }: Props) {
@@ -100,12 +119,12 @@ export default function MapPicker({ latitude, longitude, onChange }: Props) {
     return () => document.removeEventListener("mousedown", onClickOutside)
   }, [])
 
-  function place(lat: number, lng: number, fly: boolean, address?: string) {
+  function place(lat: number, lng: number, fly: boolean, knownPlace?: Place) {
     setPosition([lat, lng])
-    onChange(lat, lng, address)
+    onChange(lat, lng, knownPlace)
     if (fly) setFlyTarget([lat, lng])
 
-    if (!address) {
+    if (!knownPlace) {
       reverseGeocode(lat, lng).then((resolved) => {
         if (resolved) onChange(lat, lng, resolved)
       })
@@ -123,7 +142,7 @@ export default function MapPicker({ latitude, longitude, onChange }: Props) {
       setSearching(true)
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&countrycodes=co&limit=5`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&countrycodes=co&limit=5&addressdetails=1`,
           { headers: { "Accept-Language": "es" } }
         )
         const data: NominatimResult[] = await res.json()
@@ -139,7 +158,7 @@ export default function MapPicker({ latitude, longitude, onChange }: Props) {
   function selectResult(r: NominatimResult) {
     setQuery(r.display_name.split(",")[0])
     setResults([])
-    place(parseFloat(r.lat), parseFloat(r.lon), true, r.display_name)
+    place(parseFloat(r.lat), parseFloat(r.lon), true, toPlace(r.address))
   }
 
   function handleClear() {
@@ -152,7 +171,7 @@ export default function MapPicker({ latitude, longitude, onChange }: Props) {
         <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar dirección o lugar…"
+          placeholder="Buscar ciudad o lugar…"
           value={query}
           onChange={(e) => handleQueryChange(e.target.value)}
           className="h-10 w-full rounded-md border border-input bg-transparent pr-4 pl-9 text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/50 focus:outline-none"

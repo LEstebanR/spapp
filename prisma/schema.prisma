@@ -107,6 +107,8 @@ model Spa {
   description String?
   logoUrl     String?
   address     String?
+  city        String?
+  department  String?
   latitude    Float?
   longitude   Float?
   // Array of 7 { day: 0-6, open: boolean, from: "HH:mm", to: "HH:mm" }, Sunday = 0.
