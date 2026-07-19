@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 
+import { BookingProfessionalAssign } from "@/components/dashboard/booking-professional-assign"
 import { BookingStatusSelect } from "@/components/dashboard/booking-status-select"
 import { Card, CardContent } from "@/components/ui/card"
 import { BOOKING_STATUSES, STATUS_LABELS } from "@/lib/booking-status"
@@ -19,14 +20,21 @@ export default async function TurnosPage({
     ? status
     : undefined
 
-  const bookings = await prisma.booking.findMany({
-    where: { spaId: spa.id, ...(activeStatus ? { status: activeStatus } : {}) },
-    orderBy: { date: "asc" },
-    include: {
-      professional: { select: { name: true } },
-      service: { select: { name: true } },
-    },
-  })
+  const [bookings, professionals] = await Promise.all([
+    prisma.booking.findMany({
+      where: { spaId: spa.id, ...(activeStatus ? { status: activeStatus } : {}) },
+      orderBy: { date: "asc" },
+      include: {
+        professional: { select: { name: true } },
+        service: { select: { name: true } },
+      },
+    }),
+    prisma.professional.findMany({
+      where: { spaId: spa.id, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, services: { select: { id: true } } },
+    }),
+  ])
 
   const filters = [{ value: undefined, label: "Todos" }, ...BOOKING_STATUSES.map((s) => ({
     value: s,
@@ -80,45 +88,59 @@ export default async function TurnosPage({
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {bookings.map((booking) => (
-                <li
-                  key={booking.id}
-                  className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium text-foreground">
-                      {booking.clientName}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        · {booking.clientPhone}
-                      </span>
-                    </p>
-                    {booking.service && (
-                      <p className="text-sm font-medium text-secondary">
-                        {booking.service.name}
+              {bookings.map((booking) => {
+                const eligibleProfessionals = professionals
+                  .filter((p) => p.services.some((s) => s.id === booking.serviceId))
+                  .map((p) => ({ id: p.id, name: p.name }))
+
+                return (
+                  <li
+                    key={booking.id}
+                    className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground">
+                        {booking.clientName}{" "}
+                        <span className="font-normal text-muted-foreground">
+                          · {booking.clientPhone}
+                        </span>
                       </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {booking.date.toLocaleDateString("es-CO", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                      })}{" "}
-                      ·{" "}
-                      {booking.date.toLocaleTimeString("es-CO", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      {booking.professional && ` · ${booking.professional.name}`}
-                    </p>
-                    {booking.notes && (
-                      <p className="mt-0.5 text-sm text-muted-foreground italic">
-                        “{booking.notes}”
+                      {booking.service && (
+                        <p className="text-sm font-medium text-secondary">
+                          {booking.service.name}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {booking.date.toLocaleDateString("es-CO", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                        })}{" "}
+                        ·{" "}
+                        {booking.date.toLocaleTimeString("es-CO", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {booking.professional && ` · ${booking.professional.name}`}
                       </p>
-                    )}
-                  </div>
-                  <BookingStatusSelect id={booking.id} status={booking.status} />
-                </li>
-              ))}
+                      {booking.notes && (
+                        <p className="mt-0.5 text-sm text-muted-foreground italic">
+                          “{booking.notes}”
+                        </p>
+                      )}
+                      {!booking.professional && booking.status !== "cancelado" && (
+                        <div className="mt-2">
+                          <BookingProfessionalAssign
+                            bookingId={booking.id}
+                            professionals={eligibleProfessionals}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <BookingStatusSelect id={booking.id} status={booking.status} />
+                  </li>
+                )
+              })}
             </ul>
           )}
         </CardContent>
