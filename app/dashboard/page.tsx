@@ -39,7 +39,7 @@ export default async function DashboardPage() {
     {
       icon: CalendarDays,
       title: "Agenda de hoy",
-      href: "/dashboard/agenda",
+      href: "/dashboard/agenda?view=day",
       text:
         todayCount === 0
           ? "No hay turnos hoy."

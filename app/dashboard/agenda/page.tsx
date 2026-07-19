@@ -3,8 +3,14 @@ import { AgendaCalendar, type AgendaBooking } from "@/components/dashboard/agend
 import { prisma } from "@/lib/prisma"
 import { requireCurrentSpa } from "@/lib/spa"
 
-export default async function AgendaPage() {
+export default async function AgendaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>
+}) {
   const spa = await requireCurrentSpa()
+  const { view } = await searchParams
+  const initialView = view === "day" || view === "week" ? view : "month"
 
   const [bookings, services, professionals] = await Promise.all([
     prisma.booking.findMany({
@@ -57,7 +63,7 @@ export default async function AgendaPage() {
       </div>
 
       <div className="mt-8">
-        <AgendaCalendar bookings={agendaBookings} />
+        <AgendaCalendar bookings={agendaBookings} initialView={initialView} />
       </div>
     </div>
   )

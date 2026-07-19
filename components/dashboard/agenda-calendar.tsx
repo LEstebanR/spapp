@@ -36,8 +36,14 @@ type View = "month" | "week" | "day"
 
 const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
 
-export function AgendaCalendar({ bookings }: { bookings: AgendaBooking[] }) {
-  const [view, setView] = useState<View>("month")
+export function AgendaCalendar({
+  bookings,
+  initialView = "month",
+}: {
+  bookings: AgendaBooking[]
+  initialView?: View
+}) {
+  const [view, setView] = useState<View>(initialView)
   const [current, setCurrent] = useState(() => new Date())
 
   const parsed = useMemo(
