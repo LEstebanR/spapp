@@ -19,9 +19,11 @@ export async function createProfessional(data: {
       spaId: spa.id,
       name,
       professionalTypeId: data.professionalTypeId || null,
-      // Starts out matching the spa's general hours; the professional's own
-      // detail page lets it diverge from there.
-      hours: spa.hours ?? undefined,
+      // hours stays null: falls back to the spa's hours live (see
+      // parseHours(p.hours ?? spa.hours) at query time) until the owner
+      // sets custom hours on this professional's own detail page. Copying
+      // a snapshot here would silently go stale the next time spa hours
+      // are edited in Settings.
     },
   })
 

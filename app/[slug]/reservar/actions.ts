@@ -72,12 +72,16 @@ export async function getAvailableSlots(input: {
       where: { spaId: spa.id, active: true, services: { some: { id: service.id } } },
       select: { hours: true },
     })
-    const spaSlots = generateSlots(parseHours(spa.hours), date, service.durationMinutes)
-    const perProfessional = professionals.map((p) =>
-      generateSlots(parseHours(p.hours ?? spa.hours), date, service.durationMinutes)
+    // A slot counts if at least one eligible professional is free then —
+    // no need to also intersect with the spa's own hours, since each
+    // professional's hours already fall back to the spa's live hours
+    // whenever they haven't set their own.
+    const union = new Set(
+      professionals.flatMap((p) =>
+        generateSlots(parseHours(p.hours ?? spa.hours), date, service.durationMinutes)
+      )
     )
-    const union = new Set(perProfessional.length > 0 ? perProfessional.flat() : spaSlots)
-    slots = spaSlots.filter((s) => union.has(s))
+    slots = Array.from(union).sort()
   }
 
   const now = new Date()
