@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ExternalLink,
   Home,
+  MessageSquare,
   Settings,
   User,
   Users,
@@ -34,6 +35,7 @@ const menu = [
   { icon: <CalendarClock />, label: "Turnos", href: "/dashboard/turnos" },
   { icon: <Users />, label: "Profesionales", href: "/dashboard/professionals" },
   { icon: <Users2 />, label: "Clientes", href: "/dashboard/clients" },
+  { icon: <MessageSquare />, label: "Feedback", href: "/dashboard/feedback" },
 ]
 
 const settingsMenu = [
