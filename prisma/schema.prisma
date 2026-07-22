@@ -19,6 +19,9 @@ model User {
   email         String
   emailVerified Boolean       @default(false)
   image         String?
+  // "owner" (runs a spa), "admin" (Spapp staff), or "professional" (works at
+  // a spa). See lib/roles.ts for the allowed values.
+  role          String        @default("owner")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   sessions          Session[]
@@ -26,8 +29,21 @@ model User {
   spa               Spa?
   pushSubscriptions PushSubscription[]
   notifications     Notification[]
+  feedback          Feedback[]
+  professionalProfiles Professional[]
 
   @@unique([email])
+}
+
+// Free-text feedback a user sends from the dashboard, reviewed in /admin.
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // In-app notification — always created regardless of whether the user has
@@ -120,6 +136,26 @@ model Spa {
   professionals     Professional[]
   services          Service[]
   bookings          Booking[]
+  clients           Client[]
+}
+
+// A spa's client, keyed by phone number within that spa (two different spas
+// can each have their own client with the same phone). clientName/clientPhone
+// on Booking stay as-is — a snapshot of what was entered at booking time —
+// this is the aggregated, editable record used for lookup and history.
+model Client {
+  id        String    @id @default(cuid())
+  spaId     String
+  spa       Spa       @relation(fields: [spaId], references: [id], onDelete: Cascade)
+  phone     String
+  name      String
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+
+  @@unique([spaId, phone])
+  @@index([spaId])
 }
 
 // A role a professional can have at a spa (e.g. "Masajista", "Esteticista").
@@ -146,12 +182,20 @@ model Professional {
   active             Boolean           @default(true)
   // Array of 7 { day: 0-6, open: boolean, from: "HH:mm", to: "HH:mm" }, Sunday = 0.
   hours              Json?
+  // Lets this person sign in and claim this profile — see
+  // lib/professional-link.ts. userId is set once they've signed in with a
+  // matching email (role becomes "professional" on their User then).
+  email              String?
+  userId             String?
+  user               User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   bookings           Booking[]
   services           Service[]
 
+  @@unique([spaId, email])
   @@index([spaId])
+  @@index([userId])
 }
 
 // A service the spa offers (e.g. "Masaje relajante", 60 min, done by a "Masajista").
@@ -179,6 +223,8 @@ model Booking {
   spa            Spa           @relation(fields: [spaId], references: [id], onDelete: Cascade)
   clientName     String
   clientPhone    String
+  clientId       String?
+  client         Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
   notes          String?
   serviceId      String?
   service        Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
@@ -192,6 +238,7 @@ model Booking {
   @@index([spaId])
   @@index([serviceId])
   @@index([professionalId])
+  @@index([clientId])
 }
 
 model Verification {
