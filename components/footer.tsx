@@ -9,6 +9,9 @@ export function Footer() {
         <Link href="/">
           <Logo variant="light" />
         </Link>
+        <Link href="/blog" className="text-sm text-white/70 hover:text-white">
+          Blog
+        </Link>
         <p className="text-sm text-white/50">
           © {new Date().getFullYear()} Spapp. Todos los derechos reservados.
         </p>

@@ -1,6 +1,8 @@
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import { cache } from "react"
 import { ArrowRight, Clock, MapPin, Sparkles } from "lucide-react"
 
 import { SpaNav } from "@/app/[slug]/spa-nav"
@@ -10,6 +12,46 @@ import { Button } from "@/components/ui/button"
 import { formatDuration } from "@/lib/duration"
 import { DAY_LABELS, parseHours } from "@/lib/hours"
 import { prisma } from "@/lib/prisma"
+import { getSiteUrl } from "@/lib/site"
+
+// Shared between generateMetadata and the page itself so the lookup only
+// runs once per request.
+const getSpa = cache((slug: string) => prisma.spa.findUnique({ where: { slug } }))
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const spa = await getSpa(slug)
+  if (!spa) return {}
+
+  const location = [spa.city, spa.department].filter(Boolean).join(", ")
+  const title = location ? `${spa.salonName} — ${location}` : spa.salonName
+  const description =
+    spa.description?.slice(0, 160) ||
+    `Reserva tu turno online en ${spa.salonName}${location ? ` (${location})` : ""}. Agenda fácil, sin llamadas.`
+
+  return {
+    // Overrides the "%s — Spapp" template from the root layout: this is the
+    // spa's own public page, not a Spapp marketing page.
+    title: { absolute: title },
+    description,
+    alternates: { canonical: `/${spa.slug}` },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: `/${spa.slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  }
+}
 
 export default async function SpaPublicPage({
   params,
@@ -17,7 +59,7 @@ export default async function SpaPublicPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const spa = await prisma.spa.findUnique({ where: { slug } })
+  const spa = await getSpa(slug)
   if (!spa) notFound()
 
   const services = await prisma.service.findMany({
@@ -30,8 +72,35 @@ export default async function SpaPublicPage({
   const hasLocation = spa.latitude != null && spa.longitude != null
   const todayHours = hours.find((d) => d.day === new Date().getDay())
 
+  const siteUrl = getSiteUrl()
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: spa.salonName,
+    description: spa.description ?? undefined,
+    url: `${siteUrl}/${spa.slug}`,
+    image: spa.logoUrl ?? undefined,
+    address:
+      spa.address || spa.city
+        ? {
+            "@type": "PostalAddress",
+            streetAddress: spa.address ?? undefined,
+            addressLocality: spa.city ?? undefined,
+            addressRegion: spa.department ?? undefined,
+            addressCountry: "CO",
+          }
+        : undefined,
+    geo: hasLocation
+      ? { "@type": "GeoCoordinates", latitude: spa.latitude, longitude: spa.longitude }
+      : undefined,
+  }
+
   return (
     <main className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SpaNav slug={spa.slug} salonName={spa.salonName} logoUrl={spa.logoUrl} />
 
       {/* Hero */}

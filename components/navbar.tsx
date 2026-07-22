@@ -11,6 +11,7 @@ const navLinks = [
   { label: "Funciones", href: "#funciones" },
   { label: "Cómo funciona", href: "#como-funciona" },
   { label: "Preguntas frecuentes", href: "#faq" },
+  { label: "Blog", href: "/blog" },
 ]
 
 export function Navbar() {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { DM_Sans, Fraunces } from "next/font/google"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
+import { getSiteUrl } from "@/lib/site"
 import "./globals.css"
 
 const fraunces = Fraunces({
@@ -16,15 +17,23 @@ const dmSans = DM_Sans({
   weight: ["400", "500", "600", "700"],
 })
 
-const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  : "http://localhost:3000"
+const siteUrl = getSiteUrl()
+const title = "Spapp — Gestión de spa"
+const description =
+  "Spapp es la app para administrar tu spa: turnos, equipo y agenda en un solo lugar. Reservas online, recordatorios automáticos y control de tu equipo de profesionales."
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Spapp — Gestión de spa",
-  description:
-    "Spapp es la app para administrar tu spa: turnos, equipo y agenda en un solo lugar.",
+  title: { default: title, template: "%s — Spapp" },
+  description,
+  keywords: [
+    "software para spa",
+    "gestión de spa",
+    "agenda para spa",
+    "reservas online spa",
+    "software para centros de estética",
+  ],
+  robots: { index: true, follow: true },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -36,6 +45,19 @@ export const metadata: Metadata = {
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_CO",
+    siteName: "Spapp",
+    title,
+    description,
+    url: siteUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
   },
 }
 
