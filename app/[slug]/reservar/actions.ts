@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 
+import { findClientByPhone, findOrCreateClient } from "@/lib/clients"
 import { generateSlots, isWithinOpenHours, parseHours } from "@/lib/hours"
 import { createNotification } from "@/lib/notifications"
+import { isValidPhone } from "@/lib/phone"
 import { prisma } from "@/lib/prisma"
 import { sendPushToUser } from "@/lib/push"
 
@@ -103,6 +105,19 @@ export async function getAvailableSlots(input: {
   return dropPastSlots(slots, date)
 }
 
+// Looked up as soon as the visitor finishes typing their phone, so the form
+// can prefill their name if they've booked here before.
+export async function getClientByPhone(input: { slug: string; phone: string }) {
+  const phone = input.phone.trim()
+  if (!phone) return null
+
+  const spa = await prisma.spa.findUnique({ where: { slug: input.slug }, select: { id: true } })
+  if (!spa) return null
+
+  const client = await findClientByPhone(spa.id, phone)
+  return client ? { name: client.name } : null
+}
+
 export async function createBooking(input: BookingInput) {
   const spa = await prisma.spa.findUnique({ where: { slug: input.slug } })
   if (!spa) throw new Error("Spa no encontrado")
@@ -112,6 +127,9 @@ export async function createBooking(input: BookingInput) {
 
   if (!clientName) throw new Error("Escribe tu nombre")
   if (!clientPhone) throw new Error("Escribe tu teléfono")
+  if (!isValidPhone(clientPhone)) {
+    throw new Error("Escribe un número de celular colombiano válido (10 dígitos)")
+  }
   if (!input.serviceId) throw new Error("Elige un servicio")
   if (!input.date || !input.time) throw new Error("Elige una fecha y hora")
 
@@ -160,11 +178,14 @@ export async function createBooking(input: BookingInput) {
     }
   }
 
+  const clientId = await findOrCreateClient(spa.id, clientPhone, clientName)
+
   await prisma.booking.create({
     data: {
       spaId: spa.id,
       clientName,
       clientPhone,
+      clientId,
       serviceId: service.id,
       professionalId,
       date,

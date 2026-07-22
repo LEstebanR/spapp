@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ChevronLeft, ChevronRight, Users2 } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
@@ -11,10 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { STATUS_BADGE_STYLES, STATUS_LABELS } from "@/lib/booking-status"
 import { prisma } from "@/lib/prisma"
 import { requireCurrentSpa } from "@/lib/spa"
-import { cn } from "@/lib/utils"
 
 // Rows per page tuned so a full page fits one desktop viewport with no
 // vertical scroll (header + this many rows + pagination bar).
@@ -28,18 +27,24 @@ export default async function ClientsPage({
   const spa = await requireCurrentSpa()
   const { page: pageParam } = await searchParams
 
-  const totalCount = await prisma.booking.count({ where: { spaId: spa.id } })
+  const totalCount = await prisma.client.count({ where: { spaId: spa.id } })
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const page = Math.min(Math.max(1, Number(pageParam) || 1), totalPages)
 
-  const bookings = await prisma.booking.findMany({
+  const clients = await prisma.client.findMany({
     where: { spaId: spa.id },
-    orderBy: { date: "desc" },
+    orderBy: { updatedAt: "desc" },
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
     include: {
-      service: { select: { name: true } },
-      professional: { select: { name: true } },
+      // Consumed = confirmado only: pending/cancelled bookings haven't
+      // actually happened, so they don't count as a service the client used.
+      bookings: {
+        where: { status: "confirmado" },
+        orderBy: { date: "desc" },
+        select: { date: true, service: { select: { name: true } } },
+      },
+      _count: { select: { bookings: true } },
     },
   })
 
@@ -52,7 +57,7 @@ export default async function ClientsPage({
         Las personas que han agendado un turno en tu spa.
       </p>
 
-      {bookings.length === 0 ? (
+      {clients.length === 0 ? (
         <Card className="mt-8 border-dashed">
           <CardContent className="flex flex-col items-center gap-4 py-20 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent">
@@ -64,7 +69,7 @@ export default async function ClientsPage({
               </h2>
               <p className="mx-auto max-w-xs text-sm text-muted-foreground">
                 Cuando alguien agende un turno desde tu página pública, va a
-                aparecer aquí con su servicio, profesional y estado.
+                aparecer aquí con su historial de servicios.
               </p>
             </div>
           </CardContent>
@@ -79,68 +84,73 @@ export default async function ClientsPage({
                     Cliente
                   </TableHead>
                   <TableHead className="h-11 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Servicio
+                    Servicios consumidos
                   </TableHead>
                   <TableHead className="h-11 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Profesional
-                  </TableHead>
-                  <TableHead className="h-11 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Fecha
+                    Última visita
                   </TableHead>
                   <TableHead className="h-11 pr-5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    Estado
+                    Turnos totales
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bookings.map((booking) => (
-                  <TableRow key={booking.id} className="border-border">
-                    <TableCell className="py-3.5 pl-5">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 shrink-0">
-                          <AvatarFallback className="bg-accent text-sm text-accent-foreground">
-                            {booking.clientName.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-foreground">
-                            {booking.clientName}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {booking.clientPhone}
-                          </p>
+                {clients.map((client) => {
+                  const serviceCounts = new Map<string, number>()
+                  for (const booking of client.bookings) {
+                    const name = booking.service?.name ?? "Sin servicio"
+                    serviceCounts.set(name, (serviceCounts.get(name) ?? 0) + 1)
+                  }
+                  const lastVisit = client.bookings[0]?.date
+
+                  return (
+                    <TableRow key={client.id} className="border-border">
+                      <TableCell className="py-3.5 pl-5">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 shrink-0">
+                            <AvatarFallback className="bg-accent text-sm text-accent-foreground">
+                              {client.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">
+                              {client.name}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {client.phone}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-foreground">
-                      {booking.service?.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {booking.professional?.name ?? "Cualquiera"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {booking.date.toLocaleDateString("es-CO", {
-                        day: "numeric",
-                        month: "short",
-                      })}{" "}
-                      ·{" "}
-                      {booking.date.toLocaleTimeString("es-CO", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </TableCell>
-                    <TableCell className="pr-5">
-                      <span
-                        className={cn(
-                          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                          STATUS_BADGE_STYLES[booking.status] ?? STATUS_BADGE_STYLES.pendiente
+                      </TableCell>
+                      <TableCell>
+                        {serviceCounts.size === 0 ? (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        ) : (
+                          <div className="flex max-w-xs flex-wrap gap-1.5">
+                            {Array.from(serviceCounts.entries()).map(([name, count]) => (
+                              <Badge key={name} variant="outline">
+                                {name}
+                                {count > 1 && ` ×${count}`}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
-                      >
-                        {STATUS_LABELS[booking.status] ?? booking.status}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {lastVisit
+                          ? lastVisit.toLocaleDateString("es-CO", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="pr-5 text-sm text-foreground">
+                        {client._count.bookings}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>

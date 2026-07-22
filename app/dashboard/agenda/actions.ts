@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 
+import { findOrCreateClient } from "@/lib/clients"
+import { isValidPhone } from "@/lib/phone"
 import { prisma } from "@/lib/prisma"
 import { requireCurrentSpa } from "@/lib/spa"
 
@@ -23,6 +25,9 @@ export async function createManualBooking(input: ManualBookingInput) {
 
   if (!clientName) throw new Error("Escribe el nombre del cliente")
   if (!clientPhone) throw new Error("Escribe el teléfono del cliente")
+  if (!isValidPhone(clientPhone)) {
+    throw new Error("Escribe un número de celular colombiano válido (10 dígitos)")
+  }
   if (!input.serviceId) throw new Error("Elige un servicio")
   if (!input.date || !input.time) throw new Error("Elige una fecha y hora")
 
@@ -43,11 +48,14 @@ export async function createManualBooking(input: ManualBookingInput) {
     professionalId = professional.id
   }
 
+  const clientId = await findOrCreateClient(spa.id, clientPhone, clientName)
+
   await prisma.booking.create({
     data: {
       spaId: spa.id,
       clientName,
       clientPhone,
+      clientId,
       serviceId: service.id,
       professionalId,
       date,

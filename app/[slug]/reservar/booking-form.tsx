@@ -7,12 +7,14 @@ import {
   createBooking,
   getAvailableProfessionals,
   getAvailableSlots,
+  getClientByPhone,
 } from "@/app/[slug]/reservar/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatDuration } from "@/lib/duration"
+import { isValidPhone } from "@/lib/phone"
 
 type Service = {
   id: string
@@ -36,6 +38,7 @@ export function BookingForm({
   const serviceRef = useRef<HTMLSelectElement>(null)
   const [clientName, setClientName] = useState("")
   const [clientPhone, setClientPhone] = useState("")
+  const [clientPhoneTouched, setClientPhoneTouched] = useState(false)
   const [serviceId, setServiceId] = useState(initialServiceId ?? "")
   const [professionalId, setProfessionalId] = useState("")
   const [date, setDate] = useState("")
@@ -53,6 +56,26 @@ export function BookingForm({
 
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+
+  // Once the phone number looks complete, check if this person has booked
+  // here before and prefill their name — but never clobber what they typed.
+  useEffect(() => {
+    const digits = clientPhone.replace(/\D/g, "")
+    if (digits.length < 7) return
+
+    let cancelled = false
+    const timer = setTimeout(() => {
+      getClientByPhone({ slug, phone: clientPhone }).then((client) => {
+        if (cancelled || !client) return
+        setClientName((current) => (current.trim() ? current : client.name))
+      })
+    }, 500)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [slug, clientPhone])
 
   // When service or date changes: find which professionals can do it that day.
   useEffect(() => {
@@ -79,6 +102,12 @@ export function BookingForm({
 
   const noAvailability =
     availabilityChecked && !isCheckingAvailability && availableProfessionals.length === 0
+
+  const phoneIsInvalid = clientPhone.trim() !== "" && !isValidPhone(clientPhone)
+  const phoneError =
+    clientPhoneTouched && phoneIsInvalid
+      ? "Escribe un número de celular colombiano válido (10 dígitos)"
+      : null
 
   // When service, date, or the chosen professional changes: load real time slots.
   useEffect(() => {
@@ -172,21 +201,25 @@ export function BookingForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="clientName">Nombre</Label>
-              <Input
-                id="clientName"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
               <Label htmlFor="clientPhone">Teléfono</Label>
               <Input
                 id="clientPhone"
                 type="tel"
                 value={clientPhone}
                 onChange={(e) => setClientPhone(e.target.value)}
+                onBlur={() => setClientPhoneTouched(true)}
+                aria-invalid={phoneError ? true : undefined}
+                placeholder="300 123 4567"
+                required
+              />
+              {phoneError && <p className="text-sm text-destructive">{phoneError}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="clientName">Nombre</Label>
+              <Input
+                id="clientName"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
                 required
               />
             </div>
@@ -324,7 +357,7 @@ export function BookingForm({
             type="submit"
             size="lg"
             className="w-full"
-            disabled={isPending || !serviceId || !time || noAvailability}
+            disabled={isPending || !serviceId || !time || noAvailability || phoneIsInvalid}
           >
             {isPending ? "Enviando…" : "Solicitar turno"}
           </Button>
