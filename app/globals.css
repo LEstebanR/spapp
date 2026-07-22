@@ -138,6 +138,17 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
+/* iOS WebKit (Safari, Chrome, Brave, etc. all run the system WebKit engine on
+   iOS) gives input[type=date/time] a fixed intrinsic minimum width that
+   ignores the author's CSS width, so it can overflow its container. */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"],
+  input[type="time"] {
+    min-width: 0;
+    -webkit-min-logical-width: 0%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
