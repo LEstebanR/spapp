@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { Prisma } from "@prisma/client"
 
 import type { DayHours } from "@/lib/hours"
 import { prisma } from "@/lib/prisma"
@@ -49,7 +50,17 @@ export async function updateSlug(slug: string) {
     throw new Error("Esa URL ya está en uso")
   }
 
-  await prisma.spa.update({ where: { id: spa.id }, data: { slug: trimmed } })
+  try {
+    await prisma.spa.update({ where: { id: spa.id }, data: { slug: trimmed } })
+  } catch (err) {
+    // Guards against a race where two requests pass the check above for the
+    // same slug at once — the DB's unique constraint is the final word.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new Error("Esa URL ya está en uso")
+    }
+    throw err
+  }
+
   revalidateSettings(spa.slug)
   revalidateSettings(trimmed)
 }

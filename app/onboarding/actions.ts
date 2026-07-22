@@ -1,6 +1,7 @@
 "use server"
 
 import { redirect } from "next/navigation"
+import { Prisma } from "@prisma/client"
 
 import { generateUniqueSlug } from "@/lib/slug"
 import { prisma } from "@/lib/prisma"
@@ -18,11 +19,22 @@ export async function createSpa(salonName: string) {
   })
   if (existing) redirect("/dashboard")
 
-  const slug = await generateUniqueSlug(trimmed)
-
-  await prisma.spa.create({
-    data: { ownerId: session.user.id, salonName: trimmed, slug },
-  })
+  // Retries guard against a race where two spas generate the same candidate
+  // slug at once — the DB's unique constraint is the final word.
+  const maxAttempts = 3
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const slug = await generateUniqueSlug(trimmed)
+    try {
+      await prisma.spa.create({
+        data: { ownerId: session.user.id, salonName: trimmed, slug },
+      })
+      break
+    } catch (err) {
+      const isSlugConflict =
+        err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002"
+      if (!isSlugConflict || attempt === maxAttempts) throw err
+    }
+  }
 
   redirect("/dashboard")
 }
