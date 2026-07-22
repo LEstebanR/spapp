@@ -1,9 +1,10 @@
 import Link from "next/link"
-import { ExternalLink, MessageCircle } from "lucide-react"
+import { ExternalLink } from "lucide-react"
 
 import { BookingProfessionalAssign } from "@/components/dashboard/booking-professional-assign"
 import { BookingStatusSelect } from "@/components/dashboard/booking-status-select"
 import { Card, CardContent } from "@/components/ui/card"
+import { WhatsAppIcon } from "@/components/ui/whatsapp-icon"
 import { BOOKING_STATUSES, STATUS_LABELS } from "@/lib/booking-status"
 import { prisma } from "@/lib/prisma"
 import { requireCurrentSpa } from "@/lib/spa"
@@ -105,23 +106,25 @@ export default async function TurnosPage({
                     className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 font-medium text-foreground">
-                        {booking.clientName}{" "}
-                        <span className="font-normal text-muted-foreground">
-                          · {booking.clientPhone}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-foreground">
+                          {booking.clientName}{" "}
+                          <span className="font-normal text-muted-foreground">
+                            · {booking.clientPhone}
+                          </span>
+                        </p>
                         {whatsappLink && (
                           <a
                             href={whatsappLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label="Escribir por WhatsApp"
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#25D366]/10 px-2.5 py-1 text-xs font-semibold text-[#128C7E] transition-colors hover:bg-[#25D366]/20"
                           >
-                            <MessageCircle className="h-4 w-4" fill="currentColor" strokeWidth={0} />
+                            <WhatsAppIcon className="h-3.5 w-3.5 text-[#25D366]" />
+                            WhatsApp
                           </a>
                         )}
-                      </p>
+                      </div>
                       {booking.service && (
                         <p className="text-sm font-medium text-secondary">
                           {booking.service.name}
