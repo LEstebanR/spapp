@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 
+import { linkProfessionalsToNewUser } from "./professional-link"
 import { prisma } from "./prisma"
 
 // Once deployed, set BETTER_AUTH_URL to the canonical prod URL and add every
@@ -19,6 +20,15 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await linkProfessionalsToNewUser({ id: user.id, email: user.email })
+        },
+      },
     },
   },
 })

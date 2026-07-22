@@ -5,6 +5,7 @@ import { ArrowLeft, BarChart3 } from "lucide-react"
 import { updateProfessionalHours } from "@/app/dashboard/professionals/[id]/actions"
 import { ProfessionalAvatarUpload } from "@/components/dashboard/professional-avatar-upload"
 import { BusinessHoursForm } from "@/components/dashboard/business-hours-form"
+import { ProfessionalEmailForm } from "@/components/dashboard/professional-email-form"
 import { ProfessionalServicesForm } from "@/components/dashboard/professional-services-form"
 import {
   Card,
@@ -67,6 +68,23 @@ export default async function ProfessionalDetailPage({
             professionalId={professional.id}
             name={professional.name}
             avatarUrl={professional.avatarUrl}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Cuenta</CardTitle>
+          <CardDescription>
+            Si le agregas su correo, podrá iniciar sesión y más adelante ver
+            su propia agenda en Spapp.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfessionalEmailForm
+            professionalId={professional.id}
+            initialEmail={professional.email ?? ""}
+            linked={professional.userId != null}
           />
         </CardContent>
       </Card>

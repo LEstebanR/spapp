@@ -29,6 +29,7 @@ export function AddProfessionalDialog({
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
   const [professionalTypeId, setProfessionalTypeId] = useState("")
   const [newTypeName, setNewTypeName] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +39,7 @@ export function AddProfessionalDialog({
 
   function reset() {
     setName("")
+    setEmail("")
     setProfessionalTypeId("")
     setNewTypeName("")
     setError(null)
@@ -53,7 +55,7 @@ export function AddProfessionalDialog({
           const created = await createProfessionalType(newTypeName)
           typeId = created.id
         }
-        await createProfessional({ name, professionalTypeId: typeId || null })
+        await createProfessional({ name, professionalTypeId: typeId || null, email })
         reset()
         setOpen(false)
         router.refresh()
@@ -89,6 +91,16 @@ export function AddProfessionalDialog({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ej. Mariana Gómez"
                 required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="prof-email">Correo (opcional)</Label>
+              <Input
+                id="prof-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Para que pueda iniciar sesión más adelante"
               />
             </div>
             <div className="space-y-1.5">
