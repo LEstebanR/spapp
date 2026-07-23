@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 
+import { sendWelcomeEmail } from "./email"
 import { linkProfessionalsToNewUser } from "./professional-link"
 import { prisma } from "./prisma"
 
@@ -27,6 +28,7 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           await linkProfessionalsToNewUser({ id: user.id, email: user.email })
+          await sendWelcomeEmail(user.email, user.name)
         },
       },
     },

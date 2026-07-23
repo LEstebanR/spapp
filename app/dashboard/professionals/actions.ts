@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { Prisma } from "@prisma/client"
 
+import { sendProfessionalProfileCreatedEmail } from "@/lib/email"
 import { linkProfessionalToExistingUser } from "@/lib/professional-link"
 import { prisma } from "@/lib/prisma"
 import { requireCurrentSpa } from "@/lib/spa"
@@ -17,6 +18,7 @@ export async function createProfessional(data: {
   const name = data.name.trim()
   if (!name) throw new Error("El nombre es obligatorio")
   const email = data.email.trim().toLowerCase()
+  if (!email) throw new Error("El correo es obligatorio")
 
   let professional: { id: string }
   try {
@@ -25,7 +27,7 @@ export async function createProfessional(data: {
         spaId: spa.id,
         name,
         professionalTypeId: data.professionalTypeId || null,
-        email: email || null,
+        email,
         // hours stays null: falls back to the spa's hours live (see
         // parseHours(p.hours ?? spa.hours) at query time) until the owner
         // sets custom hours on this professional's own detail page. Copying
@@ -40,7 +42,11 @@ export async function createProfessional(data: {
     throw err
   }
 
-  if (email) await linkProfessionalToExistingUser(professional.id, email)
+  await linkProfessionalToExistingUser(professional.id, email)
+  await sendProfessionalProfileCreatedEmail(email, {
+    professionalName: name,
+    spaName: spa.salonName,
+  })
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/professionals")

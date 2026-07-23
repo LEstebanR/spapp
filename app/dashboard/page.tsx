@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import {
   CalendarClock,
   CalendarDays,
@@ -10,13 +11,52 @@ import {
 } from "lucide-react"
 import { endOfDay, startOfDay } from "date-fns"
 
+import { AgendaCalendar, type AgendaBooking } from "@/components/dashboard/agenda-calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUserRole } from "@/lib/roles"
 import { getServerSession } from "@/lib/session"
-import { requireCurrentSpa } from "@/lib/spa"
+import { getCurrentProfessional, requireCurrentSpa } from "@/lib/spa"
 
 export default async function DashboardPage() {
   const session = await getServerSession()
+  const role = await getCurrentUserRole()
+
+  if (role === "professional") {
+    const professional = await getCurrentProfessional()
+    if (!professional) redirect("/login")
+
+    const bookings = await prisma.booking.findMany({
+      where: { professionalId: professional.id, status: { not: "cancelado" } },
+      include: { service: { select: { name: true } } },
+    })
+
+    const agendaBookings: AgendaBooking[] = bookings.map((b) => ({
+      id: b.id,
+      clientName: b.clientName,
+      clientPhone: b.clientPhone,
+      date: b.date.toISOString(),
+      status: b.status,
+      serviceName: b.service?.name ?? null,
+      professionalName: professional.name,
+    }))
+
+    return (
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <h1 className="font-display text-3xl font-bold text-foreground">
+          Hola, {session?.user.name?.split(" ")[0]}
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Esta es tu agenda en {professional.spa.salonName}.
+        </p>
+
+        <div className="mt-8">
+          <AgendaCalendar bookings={agendaBookings} initialView="week" />
+        </div>
+      </div>
+    )
+  }
+
   const spa = await requireCurrentSpa()
 
   const now = new Date()

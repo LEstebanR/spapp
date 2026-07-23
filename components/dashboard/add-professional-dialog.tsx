@@ -94,13 +94,14 @@ export function AddProfessionalDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="prof-email">Correo (opcional)</Label>
+              <Label htmlFor="prof-email">Correo</Label>
               <Input
                 id="prof-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Para que pueda iniciar sesión más adelante"
+                placeholder="Para que pueda iniciar sesión y ver su agenda"
+                required
               />
             </div>
             <div className="space-y-1.5">
